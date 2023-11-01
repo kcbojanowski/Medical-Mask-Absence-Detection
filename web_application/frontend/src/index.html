@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Face Mask Detection</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+            <link rel="stylesheet" href="styles.css">
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            font-family: Arial, sans-serif;
+        }
+        .video-container {
+            position: relative;
+            border: 1px solid #ccc;
+            border-radius: 18px;
+            overflow: hidden;
+        }
+        video {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+    </style>
+    </head>
+    <body>
+        <header>
+            <h1>Real-Time Face Mask Detection</h1>
+        </header>
+        <main>
+               <div class="video-container">
+                    <img id="video" src="/video_feed">
+<!--                    <div class="loader"></div>-->
+               </div>
+        </main>
+        <footer>
+            <div class="author-section">
+                Kacper Bojanowski
+            </div>
+            <div class="description-section">
+                Engineering Thesis for AGH UST
+            </div>
+            <div class="footer-buttons">
+                <a href="https://github.com/yourusername" target="_blank">
+                    <i class="fab fa-github"></i>
+                </a>
+                <a href="#">
+                    <i class="fas fa-info-circle"></i>
+                </a>
+            </div>
+        </footer>
+    </body>
+</html>
