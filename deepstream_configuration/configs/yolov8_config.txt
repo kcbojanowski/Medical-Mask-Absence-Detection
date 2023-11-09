@@ -1,0 +1,10 @@
+[property]
+gpu-id=0
+net-scale-factor=1
+model-engine-file=path_to_your_model.engine
+labelfile-path=path_to_your_labels.txt
+batch-size=1
+network-mode=1
+num-detected-classes=3
+gie-unique-id=1
+output-blob-names=output_node_name

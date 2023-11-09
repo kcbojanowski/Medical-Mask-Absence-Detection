@@ -1,0 +1,30 @@
+[property]
+gpu-id=0
+net-scale-factor=0.0039215697906911373
+
+# These should be replaced with the paths to your actual YOLOv8 model and related files
+model-file=../models/YoloV8/yolov8.onnx
+# If you have a TensorRT engine file for YOLOv8, specify it here
+model-engine-file=../models/YoloV8/yolov8.engine
+labelfile-path=../models/YoloV8/labels.txt
+
+# You would also specify the input and output layers of YOLOv8. These names can be obtained from the YOLOv8 model documentation or by inspecting the model.
+input-blob-names=input_0
+output-blob-names=output1_yolov8;output2_yolov8;output3_yolov8
+
+batch-size=1
+
+# use 0 for FP32, 1 for INT8, and 2 for FP16 precision.
+network-mode=2
+
+# YOLOv8 has a specific number of classes it can detect, so update this to the correct number.
+num-detected-classes=3
+
+# gie-unique-id should be unique for each nvinfer element in the pipeline
+gie-unique-id=1
+
+[class-attrs-all]
+# These settings will need to be fine-tuned based on the detection threshold and NMS parameters suitable for YOLOv8.
+pre-cluster-threshold=0.4
+eps=0.2
+group-threshold=1
