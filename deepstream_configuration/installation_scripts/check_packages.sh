@@ -78,7 +78,7 @@ check_cuda_installed "12.1"
 # Check for TensorRT
 check_tensorrt_installed "8.5.3.1"
 
-# Check if DeepStream is installed by looking for its directory
+# Check if DeepStream is installed by looking for its detect
 if [ -d "/opt/nvidia/deepstream" ]; then
   echo "A DeepStream installation was found."
 else
