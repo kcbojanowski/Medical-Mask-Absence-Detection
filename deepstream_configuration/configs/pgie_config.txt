@@ -2,16 +2,17 @@
 gpu-id=0
 net-scale-factor=1
 
+# paths and func names
 onnx-file=../models/onnx/best.onnx
 model-engine-file=../models/trt_engines/yolov8_best.engine
 labelfile-path=../models/labels.txt
 custom-lib-path=../src/nvdsinfer_custom_impl_YoloV8/libnvdsinfer_custom_impl_YoloV8.so
 parse-bbox-func-name=NvDsInferParseCustomYoloV8
 
-# input and output layers of YOLOv8
+# output layers of YOLOv8
 output-blob-names=num_dets;bboxes;scores;labels
 
-model-color-format=0
+model-color-format=0 # 0 - RGB
 batch-size=1
 interval=0
 
@@ -25,6 +26,5 @@ num-detected-classes=3
 gie-unique-id=1
 
 [class-attrs-all]
-# These settings will need to be fine-tuned based on the detection threshold and NMS parameters suitable for YOLOv8.
 pre-cluster-threshold=0.3
 group-threshold=1
