@@ -1,22 +1,5 @@
 #!/usr/bin/env python3
 
-################################################################################
-# SPDX-FileCopyrightText: Copyright (c) 2020-2022 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
-# SPDX-License-Identifier: Apache-2.0
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-################################################################################
-
 import sys
 
 sys.path.append('../')
@@ -44,9 +27,10 @@ bbox_bg_color_0 = {"R": 0.0, "G": 0.5, "B": 0.5, "A": 0.2}
 bbox_bg_color_1 = {"R": 0.0, "G": 1.0, "B": 0.0, "A": 0.2}
 bbox_bg_color_2 = {"R": 1.0, "G": 0.0, "B": 0.0, "A": 0.2}
 
+
 def osd_sink_pad_buffer_probe(pad, info, u_data):
     frame_number = 0
-    # Intiallizing object counter with 0.
+    # Initializing object counter with 0.
     obj_counter = {
         PGIE_CLASS_ID_INCORRECT_MASK: 0,
         PGIE_CLASS_ID_WITH_MASK: 0,
@@ -125,7 +109,7 @@ def osd_sink_pad_buffer_probe(pad, info, u_data):
         # memory will not be claimed by the garbage collector.
         # Reading the display_text field here will return the C address of the
         # allocated string. Use pyds.get_string() to get the string content.
-        py_nvosd_text_params.display_text = "Frame Number={} Number of Objects={} Without_maks_count={} Incorrect_mask_count={}".format(
+        py_nvosd_text_params.display_text = "Frame Number={} Number of Objects={} Without_mask_count={} Incorrect_mask_count={}".format(
             frame_number, num_rects, obj_counter[PGIE_CLASS_ID_WITHOUT_MASK], obj_counter[PGIE_CLASS_ID_INCORRECT_MASK])
 
         # Now set the offsets where the string should appear
@@ -298,7 +282,6 @@ def main(args):
 
     osdsinkpad.add_probe(Gst.PadProbeType.BUFFER, osd_sink_pad_buffer_probe, 0)
 
-    # start play back and listen to events
     print("Starting pipeline \n")
     pipeline.set_state(Gst.State.PLAYING)
     try:

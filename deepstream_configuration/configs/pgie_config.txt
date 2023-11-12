@@ -5,6 +5,8 @@ net-scale-factor=1
 onnx-file=../models/onnx/best.onnx
 model-engine-file=../models/trt_engines/yolov8_best.engine
 labelfile-path=../models/labels.txt
+custom-lib-path=../src/nvdsinfer_custom_impl_YoloV8/libnvdsinfer_custom_impl_YoloV8.so
+parse-bbox-func-name=NvDsInferParseCustomYoloV8
 
 # input and output layers of YOLOv8
 output-blob-names=num_dets;bboxes;scores;labels

@@ -3,13 +3,6 @@
 #include <algorithm>
 #include "nvdsinfer_custom_impl.h"
 #include <numeric>
-
-extern "C" bool NvDsInferParseCustomYoloV8(
-    std::vector<NvDsInferLayerInfo> const& outputLayersInfo,
-    NvDsInferNetworkInfo const& networkInfo,
-    NvDsInferParseDetectionParams const& detectionParams,
-    std::vector<NvDsInferObjectDetectionInfo>& objectList);
-
 #include <vector>
 #include <algorithm>
 
@@ -111,7 +104,7 @@ extern "C" bool NvDsInferParseCustomYoloV8(
     std::vector<NvDsInferObjectDetectionInfo> detections = decodeDetections(
         boxes, scores, classes, numDets, networkInfo, detectionParams.perClassPreclusterThreshold);
 
-    objectList = nonMaximumSuppression(detections, 0.45); // Adjust NMS threshold as needed
+    objectList = nonMaximumSuppression(detections, 0.45);
 
     return true;
 }
