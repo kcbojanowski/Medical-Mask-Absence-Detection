@@ -2,9 +2,9 @@
 gpu-id=0
 net-scale-factor=1
 
-onnx-file=../models/YoloV8/best.onnx
-model-engine-file=../models/YoloV8/yolov8_best.engine
-labelfile-path=../models/YoloV8/labels.txt
+onnx-file=../models/onnx/best.onnx
+model-engine-file=../models/trt_engines/yolov8_best.engine
+labelfile-path=../models/labels.txt
 
 # input and output layers of YOLOv8
 output-blob-names=num_dets;bboxes;scores;labels
