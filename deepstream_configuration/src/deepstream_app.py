@@ -231,7 +231,7 @@ def main(args):
     streammux.set_property('height', 1080)
     streammux.set_property('batch-size', 1)
     streammux.set_property('batched-push-timeout', 4000000)
-    pgie.set_property('config-file-path', "configs/pgie_config.txt")
+    pgie.set_property('config-file-path', "../configs/pgie_config.txt")
     # Set sync = false to avoid late frame drops at the display-sink
     sink.set_property('sync', False)
 

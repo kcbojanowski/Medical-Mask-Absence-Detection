@@ -52,23 +52,39 @@ decodeDetections(const float* boxes, const float* scores, const int* classes, in
     std::vector<NvDsInferObjectDetectionInfo> detections;
 
     for (int i = 0; i < numDets; ++i) {
+        std::cout << "Processing detection " << i << std::endl;
+
         float score = scores[i];
         int classId = classes[i];
+        std::cout << "Detection " << i << ": score=" << score << ", classId=" << classId << std::endl;
+
+        std::cout << "preclusterThreshold size: " << preclusterThreshold.size() << std::endl;
+
+        // Check if classId is valid
+        if (classId < 0 || classId >= preclusterThreshold.size()) {
+            std::cerr << "Invalid classId: " << classId << std::endl;
+            continue;
+        }
 
         if (score < preclusterThreshold[classId]) {
             continue;
+        }
+
+        // Ensure index is within bounds
+        if (i * 4 + 3 >= 12) {
+            std::cerr << "Index out of bounds for boxes array" << std::endl;
+            break;
         }
 
         float x1 = boxes[i * 4 + 0];
         float y1 = boxes[i * 4 + 1];
         float x2 = boxes[i * 4 + 2];
         float y2 = boxes[i * 4 + 3];
+        std::cout << "Coordinates: (" << x1 << ", " << y1 << ", " << x2 << ", " << y2 << ")" << std::endl;
 
         NvDsInferObjectDetectionInfo detection;
         detection.classId = classId;
         detection.detectionConfidence = score;
-
-        // Convert bbox coordinates from relative to absolute values
         detection.left = x1 * networkInfo.width;
         detection.top = y1 * networkInfo.height;
         detection.width = (x2 - x1) * networkInfo.width;
@@ -80,30 +96,57 @@ decodeDetections(const float* boxes, const float* scores, const int* classes, in
     return detections;
 }
 
+
+
+
 extern "C" bool NvDsInferParseCustomYoloV8(
     std::vector<NvDsInferLayerInfo> const& outputLayersInfo,
     NvDsInferNetworkInfo const& networkInfo,
     NvDsInferParseDetectionParams const& detectionParams,
     std::vector<NvDsInferObjectDetectionInfo>& objectList) {
 
+    std::cout << "preclusterThreshold size in NvDsInferParseCustomYoloV8: "
+          << detectionParams.perClassPreclusterThreshold.size() << std::endl;
+
+    // Validate the number of output layers
     if (outputLayersInfo.size() != 4) {
         std::cerr << "Expected 4 output layers, but got " << outputLayersInfo.size() << std::endl;
         return false;
     }
 
+    // Validate each layer's buffer
+    for (const auto& layer : outputLayersInfo) {
+        if (layer.buffer == nullptr) {
+            std::cerr << "One of the layer buffers is null" << std::endl;
+            return false;
+        }
+    }
+
+    // Extracting layer information
     const NvDsInferLayerInfo& numDetsLayer = outputLayersInfo[0]; // num_dets
     const NvDsInferLayerInfo& bboxesLayer = outputLayersInfo[1]; // bboxes
     const NvDsInferLayerInfo& scoresLayer = outputLayersInfo[2]; // scores
     const NvDsInferLayerInfo& labelsLayer = outputLayersInfo[3]; // labels
 
+    // Safely cast buffer to the expected type
     int numDets = *static_cast<int*>(numDetsLayer.buffer);
+    std::cout << "Number of detections: " << numDets << std::endl;
+
+    // Validate numDets
+    if (numDets < 0) {
+        std::cerr << "Number of detections is negative: " << numDets << std::endl;
+        return false;
+    }
+
     const float* boxes = static_cast<float*>(bboxesLayer.buffer);
     const float* scores = static_cast<float*>(scoresLayer.buffer);
     const int* classes = static_cast<int*>(labelsLayer.buffer);
 
-    std::vector<NvDsInferObjectDetectionInfo> detections = decodeDetections(
+    // Decode detections
+    auto detections = decodeDetections(
         boxes, scores, classes, numDets, networkInfo, detectionParams.perClassPreclusterThreshold);
 
+    // Apply non-maximum suppression
     objectList = nonMaximumSuppression(detections, 0.45);
 
     return true;
