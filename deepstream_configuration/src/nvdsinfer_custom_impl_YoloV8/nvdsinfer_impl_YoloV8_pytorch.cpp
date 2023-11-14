@@ -3,8 +3,6 @@
 #include <algorithm>
 #include "nvdsinfer_custom_impl.h"
 #include <numeric>
-#include <vector>
-#include <algorithm>
 
 static float IoU(const NvDsInferObjectDetectionInfo& a, const NvDsInferObjectDetectionInfo& b) {
     float areaA = a.width * a.height;
@@ -47,46 +45,38 @@ nonMaximumSuppression(const std::vector<NvDsInferObjectDetectionInfo>& detection
 }
 
 static std::vector<NvDsInferObjectDetectionInfo>
-decodeDetections(const float* boxes, const float* scores, const int* classes, int numDets,
+decodeDetections(const float* detOutput, int numDets,
                  const NvDsInferNetworkInfo& networkInfo, float confThreshold) {
     std::vector<NvDsInferObjectDetectionInfo> detections;
 
     for (int i = 0; i < numDets; ++i) {
-        float score = scores[i];
+        const float* det = detOutput + i * 7; // 7 values per detection
+
+        float x = det[0];
+        float y = det[1];
+        float w = det[2];
+        float h = det[3];
+        // Determine the class with the highest score
+        int classId = std::max_element(det + 4, det + 7) - (det + 4);
+        float score = det[4 + classId];
+
         if (score < confThreshold) {
             continue;
         }
 
-        int classId = classes[i];
-
-        // Convert from [x_center, y_center, width, height] to [left, top, right, bottom]
-        float x_center = boxes[i * 4];
-        float y_center = boxes[i * 4 + 1];
-        float w = boxes[i * 4 + 2];
-        float h = boxes[i * 4 + 3];
-        float left = x_center - (w / 2);
-        float top = y_center - (h / 2);
-
         NvDsInferObjectDetectionInfo detection;
         detection.classId = classId;
         detection.detectionConfidence = score;
-        detection.left = left;
-        detection.top = top;
-        detection.width = w;
-        detection.height = h;
+        detection.left = x * networkInfo.width;
+        detection.top = y * networkInfo.height;
+        detection.width = w * networkInfo.width;
+        detection.height = h * networkInfo.height;
 
         detections.push_back(detection);
-
-//        std::cout << "Processed Detection: ClassID = " << detection.classId
-//                  << ", Confidence = " << detection.detectionConfidence
-//                  << ", Left = " << detection.left << ", Top = " << detection.top
-//                  << ", Width = " << detection.width << ", Height = " << detection.height << std::endl;
     }
+
     return detections;
 }
-
-
-
 
 extern "C" bool NvDsInferParseCustomYoloV8(
     std::vector<NvDsInferLayerInfo> const& outputLayersInfo,
@@ -94,33 +84,23 @@ extern "C" bool NvDsInferParseCustomYoloV8(
     NvDsInferParseDetectionParams const& detectionParams,
     std::vector<NvDsInferObjectDetectionInfo>& objectList) {
 
-    if (outputLayersInfo.size() != 4) {
-        std::cerr << "Expected 4 output layers, but got " << outputLayersInfo.size() << std::endl;
+    if (outputLayersInfo.size() != 1 || std::string(outputLayersInfo[0].layerName) != "897") {
+        std::cerr << "Expected 1 output layer named '897', but got different configuration" << std::endl;
         return false;
     }
 
-    for (const auto& layer : outputLayersInfo) {
-        if (layer.buffer == nullptr) {
-            std::cerr << "One of the layer buffers is null" << std::endl;
-            return false;
-        }
-    }
-
-    const NvDsInferLayerInfo& numDetsLayer = outputLayersInfo[0]; // num_dets
-    int numDets = *static_cast<int*>(numDetsLayer.buffer);
-
-    if (numDets < 0) {
-        std::cerr << "Number of detections is negative: " << numDets << std::endl;
+    const NvDsInferLayerInfo& detLayer = outputLayersInfo[0]; // Detections
+    if (detLayer.buffer == nullptr) {
+        std::cerr << "Detection layer buffer is null" << std::endl;
         return false;
     }
 
-    const float* boxes = static_cast<float*>(outputLayersInfo[1].buffer);
-    const float* scores = static_cast<float*>(outputLayersInfo[2].buffer);
-    const int* classes = static_cast<int*>(outputLayersInfo[3].buffer);
+    int numDets = 8400; // Number of detections
+    const float* detOutput = static_cast<float*>(detLayer.buffer);
 
-    float globalThreshold = 0.7;
-    auto detections = decodeDetections(boxes, scores, classes, numDets, networkInfo, globalThreshold);
-    objectList = nonMaximumSuppression(detections, 0.6);
+    float confThreshold = 0.3; // Set an appropriate confidence threshold
+    auto detections = decodeDetections(detOutput, numDets, networkInfo, confThreshold);
+    objectList = nonMaximumSuppression(detections, 0.45);
 
     return true;
 }

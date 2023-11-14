@@ -2,6 +2,7 @@
 #include <vector>
 #include "nvdsinfer_custom_impl.h"
 
+
 constexpr int MAX_DETS = 3;
 float bboxes[MAX_DETS * 4] = {
     0.1f, 0.2f, 0.4f, 0.5f, // First bbox
@@ -36,7 +37,7 @@ void testParser() {
 
     std::vector<NvDsInferLayerInfo> outputLayersInfo = {numDetsLayer, bboxesLayer, scoresLayer, classesLayer};
 
-    NvDsInferNetworkInfo networkInfo = {640, 480, 3}; // Set appropriate network info
+    NvDsInferNetworkInfo networkInfo = {640, 640, 3}; // Set appropriate network info
     NvDsInferParseDetectionParams detectionParams;
     detectionParams.perClassPreclusterThreshold = std::vector<float>(3, 0.3f); // Initialize with a default value for each class
 

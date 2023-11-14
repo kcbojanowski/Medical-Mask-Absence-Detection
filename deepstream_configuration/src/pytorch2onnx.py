@@ -2,7 +2,7 @@ import torch
 from ultralytics import YOLO
 
 # Load your model
-model_path = '../../runs/weights/best.pt'
+model_path = '../../runs/train2/weights/best.pt'
 onnx_model_path = '../models/onnx'
 model = YOLO(model_path)
 model.eval()

@@ -29,6 +29,7 @@ bbox_bg_color_2 = {"R": 1.0, "G": 0.0, "B": 0.0, "A": 0.2}
 
 
 def osd_sink_pad_buffer_probe(pad, info, u_data):
+    print("Entering osd_sink_pad_buffer_probe")
     frame_number = 0
     # Initializing object counter with 0.
     obj_counter = {
@@ -44,91 +45,81 @@ def osd_sink_pad_buffer_probe(pad, info, u_data):
         return
 
     # Retrieve batch metadata from the gst_buffer
-    # Note that pyds.gst_buffer_get_nvds_batch_meta() expects the
-    # C address of gst_buffer as input, which is obtained with hash(gst_buffer)
     batch_meta = pyds.gst_buffer_get_nvds_batch_meta(hash(gst_buffer))
+    if not batch_meta:
+        print("Unable to get batch meta")
+        return Gst.PadProbeReturn.OK
+
     l_frame = batch_meta.frame_meta_list
+    if not l_frame:
+        print("No frame meta in batch")
+        return Gst.PadProbeReturn.OK
+
     while l_frame is not None:
         try:
-            # Note that l_frame.data needs a cast to pyds.NvDsFrameMeta
-            # The casting is done by pyds.NvDsFrameMeta.cast()
-            # The casting also keeps ownership of the underlying memory
-            # in the C code, so the Python garbage collector will leave
-            # it alone.
             frame_meta = pyds.NvDsFrameMeta.cast(l_frame.data)
+            if not frame_meta:
+                print("Failed to cast to NvDsFrameMeta")
+                l_frame = l_frame.next
+                continue
         except StopIteration:
             break
 
         frame_number = frame_meta.frame_num
         num_rects = frame_meta.num_obj_meta
+
         l_obj = frame_meta.obj_meta_list
         while l_obj is not None:
             try:
-                # Casting l_obj.data to pyds.NvDsObjectMeta
                 obj_meta = pyds.NvDsObjectMeta.cast(l_obj.data)
+                if not obj_meta:
+                    print("Failed to cast to NvDsObjectMeta")
+                    l_obj = l_obj.next
+                    continue
             except StopIteration:
                 break
+
             obj_counter[obj_meta.class_id] += 1
-            rectparams = obj_meta.rect_params  # Retrieve bounding box parameters
+            rectparams = obj_meta.rect_params
+            rectparams.border_color.set(1, 0, 0, 1)
+            rectparams.border_width = 3
+            rectparams.has_bg_color = 0
 
-            # Choose color based on class ID
-            if obj_meta.class_id == PGIE_CLASS_ID_INCORRECT_MASK:
-                bbox_color = bbox_border_color_0
-                bg_color = bbox_bg_color_0
-            elif obj_meta.class_id == PGIE_CLASS_ID_WITH_MASK:
-                bbox_color = bbox_border_color_1
-                bg_color = bbox_bg_color_1
-            elif obj_meta.class_id == PGIE_CLASS_ID_WITHOUT_MASK:
-                bbox_color = bbox_border_color_2
-                bg_color = bbox_bg_color_2
-            else:
-                bbox_color = {"R": 1.0, "G": 1.0, "B": 1.0, "A": 1.0}
-                bg_color = {"R": 0.5, "G": 0.5, "B": 0.5, "A": 0.2}
+            # Debug print for bounding box coordinates
+            print(f"Bounding Box: Left {rectparams.left}, Top {rectparams.top}, Width {rectparams.width}, Height {rectparams.height}")
 
-            # Set color of bbox
-            rectparams.border_color.set(bbox_color["R"], bbox_color["G"], bbox_color["B"], bbox_color["A"])
-            # Set whether bbox has background color
-            rectparams.has_bg_color = bbox_has_bg_color
-            # If bbox has background color, set background color
-            if bbox_has_bg_color:
-                rectparams.bg_color.set(bg_color["R"], bg_color["G"], bg_color["B"], bg_color["A"])
+            # Set text parameters
+            obj_meta.text_params.display_text = f"Class {obj_meta.class_id}"
+            obj_meta.text_params.x_offset = int(rectparams.left)
+            obj_meta.text_params.y_offset = max(int(rectparams.top) - 10, 0)
+            obj_meta.text_params.font_params.font_name = "Serif"
+            obj_meta.text_params.font_params.font_size = 12
+            obj_meta.text_params.font_params.font_color.set(1.0, 1.0, 1.0, 1.0)
+            obj_meta.text_params.set_bg_clr = 0
 
             try:
                 l_obj = l_obj.next
             except StopIteration:
                 break
 
-        # Acquiring a display meta object. The memory ownership remains in
-        # the C code so downstream plugins can still access it. Otherwise
-        # the garbage collector will claim it when this probe function exits.
+        # Acquiring a display meta object
         display_meta = pyds.nvds_acquire_display_meta_from_pool(batch_meta)
         display_meta.num_labels = 1
         py_nvosd_text_params = display_meta.text_params[0]
-        # Setting display text to be shown on screen
-        # Note that the pyds module allocates a buffer for the string, and the
-        # memory will not be claimed by the garbage collector.
-        # Reading the display_text field here will return the C address of the
-        # allocated string. Use pyds.get_string() to get the string content.
-        py_nvosd_text_params.display_text = "Frame Number={} Number of Objects={} Without_mask_count={} Incorrect_mask_count={}".format(
-            frame_number, num_rects, obj_counter[PGIE_CLASS_ID_WITHOUT_MASK], obj_counter[PGIE_CLASS_ID_INCORRECT_MASK])
 
-        # Now set the offsets where the string should appear
+        # Setting display text to be shown on screen
+        py_nvosd_text_params.display_text = f"Frame Number={frame_number} Number of Objects={num_rects} Without_mask_count={obj_counter[PGIE_CLASS_ID_WITHOUT_MASK]} Incorrect_mask_count={obj_counter[PGIE_CLASS_ID_INCORRECT_MASK]}"
         py_nvosd_text_params.x_offset = 10
         py_nvosd_text_params.y_offset = 12
-
-        # Font , font-color and font-size
         py_nvosd_text_params.font_params.font_name = "Serif"
         py_nvosd_text_params.font_params.font_size = 10
-        # set(red, green, blue, alpha); set to White
         py_nvosd_text_params.font_params.font_color.set(1.0, 1.0, 1.0, 1.0)
-
-        # Text background color
         py_nvosd_text_params.set_bg_clr = 1
-        # set(red, green, blue, alpha); set to Black
         py_nvosd_text_params.text_bg_clr.set(0.0, 0.0, 0.0, 1.0)
-        # Using pyds.get_string() to get display_text as string
+
         print(pyds.get_string(py_nvosd_text_params.display_text))
         pyds.nvds_add_display_meta_to_frame(frame_meta, display_meta)
+
         try:
             l_frame = l_frame.next
         except StopIteration:
@@ -185,8 +176,9 @@ def main(args):
     if not nvvidconvsrc:
         sys.stderr.write(" Unable to create Nvvideoconvert \n")
 
-    caps_vidconvsrc = Gst.ElementFactory.make("capsfilter", "nvmm_caps")
-    if not caps_vidconvsrc:
+    # Create capsfilter for nvvidconvsrc to output RGBA format
+    nvmm_caps = Gst.ElementFactory.make("capsfilter", "nvmm_caps")
+    if not nvmm_caps:
         sys.stderr.write(" Unable to create capsfilter \n")
 
     # Create nvstreammux instance to form batches from one or more sources.
@@ -224,23 +216,26 @@ def main(args):
             sys.stderr.write(" Unable to create egl sink \n")
 
     print("Playing cam %s " % args[1])
-    caps_v4l2src.set_property('caps', Gst.Caps.from_string("video/x-raw, framerate=30/1"))
-    caps_vidconvsrc.set_property('caps', Gst.Caps.from_string("video/x-raw(memory:NVMM)"))
+    caps_v4l2src.set_property('caps', Gst.Caps.from_string("video/x-raw, framerate=15/1"))
+    caps = Gst.caps_from_string("video/x-raw(memory:NVMM), format=(string)RGBA")
+    nvmm_caps.set_property("caps", caps)
     source.set_property('device', args[1])
-    streammux.set_property('width', 1920)
-    streammux.set_property('height', 1080)
+    streammux.set_property('gpu-id', 0)
+    streammux.set_property('width', 640)
+    streammux.set_property('height', 640)
     streammux.set_property('batch-size', 1)
+    streammux.set_property('live-source', 1)
     streammux.set_property('batched-push-timeout', 4000000)
     pgie.set_property('config-file-path', "../configs/pgie_config.txt")
     # Set sync = false to avoid late frame drops at the display-sink
-    sink.set_property('sync', False)
+    sink.set_property('sync', 0)
 
     print("Adding elements to Pipeline \n")
     pipeline.add(source)
     pipeline.add(caps_v4l2src)
     pipeline.add(vidconvsrc)
     pipeline.add(nvvidconvsrc)
-    pipeline.add(caps_vidconvsrc)
+    pipeline.add(nvmm_caps)
     pipeline.add(streammux)
     pipeline.add(pgie)
     pipeline.add(nvvidconv)
@@ -253,12 +248,13 @@ def main(args):
     source.link(caps_v4l2src)
     caps_v4l2src.link(vidconvsrc)
     vidconvsrc.link(nvvidconvsrc)
-    nvvidconvsrc.link(caps_vidconvsrc)
+    nvvidconvsrc.link(nvmm_caps)
+    nvmm_caps.link(streammux)
 
     sinkpad = streammux.get_request_pad("sink_0")
     if not sinkpad:
         sys.stderr.write(" Unable to get the sink pad of streammux \n")
-    srcpad = caps_vidconvsrc.get_static_pad("src")
+    srcpad = nvmm_caps.get_static_pad("src")
     if not srcpad:
         sys.stderr.write(" Unable to get source pad of caps_vidconvsrc \n")
     srcpad.link(sinkpad)
@@ -290,6 +286,7 @@ def main(args):
         pass
     # cleanup
     pipeline.set_state(Gst.State.NULL)
+
 
 
 if __name__ == '__main__':
