@@ -57,7 +57,6 @@ check_gstreamer_installed() {
   fi
 }
 
-check_requirements() {
 # Check Ubuntu Version
 ubuntu_version=$(lsb_release -rs)
 if [ "$ubuntu_version" == "20.04" ]; then

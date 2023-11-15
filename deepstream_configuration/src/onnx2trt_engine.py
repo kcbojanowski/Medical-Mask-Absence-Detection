@@ -44,8 +44,8 @@ def build_engine(onnx_file_path, engine_file_path=""):
 
 def main():
     # File paths
-    onnx_file_path = "models/YoloV8/best.onnx"
-    engine_file_path = "models/YoloV8/yolov8_best.engine"
+    onnx_file_path = "../models/onnx/train7.onnx"
+    engine_file_path = "../models/trt_engines/train7.engine"
 
     # Build a TensorRT engine.
     engine = build_engine(onnx_file_path, engine_file_path)

@@ -3,23 +3,20 @@ gpu-id=0
 net-scale-factor=1
 
 # paths and func names
-onnx-file=../models/onnx/best.onnx
-model-engine-file=../models/trt_engines/yolov8_best.engine
+# onnx-file=../models/onnx/train7.onnx
+model-engine-file=../models/trt_engines/train7.engine
 labelfile-path=../models/labels.txt
 custom-lib-path=../src/nvdsinfer_custom_impl_YoloV8/libnvdsinfer_custom_impl_YoloV8.so
 parse-bbox-func-name=NvDsInferParseCustomYoloV8
 
-uff-input-blob-name=images
-
 # output layers of YOLOv8
 output-blob-names=num_dets;bboxes;scores;labels
 
-model-color-format=0 # 0 - RGB
 batch-size=1
 interval=0
 
 # use 0 for FP32, 1 for INT8, and 2 for FP16 precision.
-network-mode=1
+network-mode=2
 
 # YOLOv8 has a specific number of classes it can detect, so update this to the correct number.
 num-detected-classes=3

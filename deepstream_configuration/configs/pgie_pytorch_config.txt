@@ -1,6 +1,6 @@
 [property]
 gpu-id=0
-net-scale-factor=1
+net-scale-factor=0.0039215697906911373
 
 # paths and func names
 onnx-file=../models/onnx/yolov8_custom14.onnx

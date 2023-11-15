@@ -16,6 +16,8 @@ PGIE_CLASS_ID_INCORRECT_MASK = 0
 PGIE_CLASS_ID_WITH_MASK = 1
 PGIE_CLASS_ID_WITHOUT_MASK = 2
 
+labels_path = '../models/labels.txt'
+
 # Bounding box options
 bbox_border_color_0 = {"R": 0.0, "G": 0.5, "B": 0.5, "A": 1.0}
 bbox_border_color_1 = {"R": 0.0, "G": 1.0, "B": 0.0, "A": 1.0}
@@ -26,6 +28,15 @@ bbox_has_bg_color = False  # Bool for whether bounding box has background color
 bbox_bg_color_0 = {"R": 0.0, "G": 0.5, "B": 0.5, "A": 0.2}
 bbox_bg_color_1 = {"R": 0.0, "G": 1.0, "B": 0.0, "A": 0.2}
 bbox_bg_color_2 = {"R": 1.0, "G": 0.0, "B": 0.0, "A": 0.2}
+
+
+def load_class_labels(labels_path):
+    with open(labels_path, 'r') as f:
+        labels = [line.strip() for line in f.readlines()]
+    return labels
+
+
+class_labels = load_class_labels(labels_path)
 
 
 def osd_sink_pad_buffer_probe(pad, info, u_data):
@@ -85,11 +96,13 @@ def osd_sink_pad_buffer_probe(pad, info, u_data):
             rectparams.border_width = 3
             rectparams.has_bg_color = 0
 
+            label_name = class_labels[obj_meta.class_id] if obj_meta.class_id < len(class_labels) else "Unknown"
+
             # Debug print for bounding box coordinates
             print(f"Bounding Box: Left {rectparams.left}, Top {rectparams.top}, Width {rectparams.width}, Height {rectparams.height}")
 
             # Set text parameters
-            obj_meta.text_params.display_text = f"Class {obj_meta.class_id}"
+            obj_meta.text_params.display_text = f"{label_name}"
             obj_meta.text_params.x_offset = int(rectparams.left)
             obj_meta.text_params.y_offset = max(int(rectparams.top) - 10, 0)
             obj_meta.text_params.font_params.font_name = "Serif"
@@ -286,8 +299,6 @@ def main(args):
         pass
     # cleanup
     pipeline.set_state(Gst.State.NULL)
-
-
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))

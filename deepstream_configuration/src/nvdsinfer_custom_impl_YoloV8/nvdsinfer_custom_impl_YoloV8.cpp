@@ -94,9 +94,19 @@ extern "C" bool NvDsInferParseCustomYoloV8(
     NvDsInferParseDetectionParams const& detectionParams,
     std::vector<NvDsInferObjectDetectionInfo>& objectList) {
 
-    if (outputLayersInfo.size() != 4) {
-        std::cerr << "Expected 4 output layers, but got " << outputLayersInfo.size() << std::endl;
-        return false;
+    std::cout << "Number of output layers: " << outputLayersInfo.size() << std::endl;
+
+    for (size_t i = 0; i < outputLayersInfo.size(); ++i) {
+        const auto& layer = outputLayersInfo[i];
+        std::cout << "Layer Index: " << i
+                  << ", Layer Name: " << layer.layerName
+                  << ", Layer Type: " << layer.dataType
+                  << ", Layer Dims: " << layer.inferDims.numDims << std::endl;
+
+        // Optionally, print dimensions details
+        for (int j = 0; j < layer.inferDims.numDims; ++j) {
+            std::cout << "Dim[" << j << "]: " << layer.inferDims.d[j] << std::endl;
+        }
     }
 
     for (const auto& layer : outputLayersInfo) {
@@ -118,9 +128,12 @@ extern "C" bool NvDsInferParseCustomYoloV8(
     const float* scores = static_cast<float*>(outputLayersInfo[2].buffer);
     const int* classes = static_cast<int*>(outputLayersInfo[3].buffer);
 
-    float globalThreshold = 0.7;
+    std::cout << "scores: " << scores;
+    std::cout << "classes: " << classes;
+
+    float globalThreshold = 0.6;
     auto detections = decodeDetections(boxes, scores, classes, numDets, networkInfo, globalThreshold);
-    objectList = nonMaximumSuppression(detections, 0.6);
+    objectList = nonMaximumSuppression(detections, 0.4);
 
     return true;
 }
