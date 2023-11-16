@@ -1,22 +1,18 @@
 #!/usr/bin/env python3
 
 import sys
-
-sys.path.append('../')
 import gi
-
-gi.require_version('Gst', '1.0')
 from gi.repository import GLib, Gst
 from common.is_aarch_64 import is_aarch64
 from common.bus_call import bus_call
-
+import time
 import pyds
+
+gi.require_version('Gst', '1.0')
 
 PGIE_CLASS_ID_INCORRECT_MASK = 0
 PGIE_CLASS_ID_WITH_MASK = 1
 PGIE_CLASS_ID_WITHOUT_MASK = 2
-
-labels_path = '../models/labels.txt'
 
 # Bounding box options
 bbox_border_color_0 = {"R": 1.0, "G": 1.0, "B": 0.0, "A": 1.0}
@@ -29,26 +25,33 @@ bbox_bg_color_0 = {"R": 1.0, "G": 1.0, "B": 0.0, "A": 0.5}
 bbox_bg_color_1 = {"R": 0.0, "G": 1.0, "B": 0.0, "A": 0.5}
 bbox_bg_color_2 = {"R": 1.0, "G": 0.0, "B": 0.0, "A": 0.5}
 
+# Global variables to calculate FPS
+global last_time, frame_count
+last_time = time.time()
+frame_count = 0
+# Change this to display FPS every N frames
+fps_display_frequency = 2
 
-def load_class_labels(labels_path):
-    with open(labels_path, 'r') as f:
+
+def load_class_labels(label_path):
+    with open(label_path, 'r') as f:
         labels = [line.strip() for line in f.readlines()]
     return labels
 
 
+labels_path = '../models/labels.txt'
 class_labels = load_class_labels(labels_path)
 
 
 def osd_sink_pad_buffer_probe(pad, info, u_data):
-    print("Entering osd_sink_pad_buffer_probe")
-    frame_number = 0
-    # Initializing object counter with 0.
+    global last_time, frame_count
+    frame_count += 1
+
     obj_counter = {
         PGIE_CLASS_ID_INCORRECT_MASK: 0,
         PGIE_CLASS_ID_WITH_MASK: 0,
         PGIE_CLASS_ID_WITHOUT_MASK: 0,
     }
-    num_rects = 0
 
     gst_buffer = info.get_buffer()
     if not gst_buffer:
@@ -76,7 +79,6 @@ def osd_sink_pad_buffer_probe(pad, info, u_data):
         except StopIteration:
             break
 
-        frame_number = frame_meta.frame_num
         num_rects = frame_meta.num_obj_meta
 
         l_obj = frame_meta.obj_meta_list
@@ -109,18 +111,13 @@ def osd_sink_pad_buffer_probe(pad, info, u_data):
                 bbox_color = {"R": 1.0, "G": 1.0, "B": 1.0, "A": 1.0}
                 bg_color = {"R": 0.5, "G": 0.5, "B": 0.5, "A": 0.2}
 
-            # Set color of bbox
             rectparams.border_color.set(bbox_color["R"], bbox_color["G"], bbox_color["B"], bbox_color["A"])
-            # Set whether bbox has background color
             rectparams.has_bg_color = bbox_has_bg_color
-            # If bbox has background color, set background color
+
             if bbox_has_bg_color:
                 rectparams.bg_color.set(bg_color["R"], bg_color["G"], bg_color["B"], bg_color["A"])
 
             label_name = class_labels[obj_meta.class_id] if obj_meta.class_id < len(class_labels) else "Unknown"
-
-            # Debug print for bounding box coordinates
-            print(f"Bounding Box: Left {rectparams.left}, Top {rectparams.top}, Width {rectparams.width}, Height {rectparams.height}")
 
             # Set text parameters
             obj_meta.text_params.display_text = f"{label_name}"
@@ -136,13 +133,35 @@ def osd_sink_pad_buffer_probe(pad, info, u_data):
             except StopIteration:
                 break
 
+        if frame_count % fps_display_frequency == 0:
+            current_time = time.time()
+            fps = fps_display_frequency / (current_time - last_time)
+            last_time = current_time
+
+            # Acquiring a display meta object
+            display_meta = pyds.nvds_acquire_display_meta_from_pool(batch_meta)
+            display_meta.num_labels = 1
+            py_nvosd_text_params = display_meta.text_params[0]
+
+            # Setting FPS text to be shown on screen
+            py_nvosd_text_params.display_text = f"FPS: {fps:.2f}"
+            py_nvosd_text_params.x_offset = 10
+            py_nvosd_text_params.y_offset = 30  # Adjust the Y offset as needed
+            py_nvosd_text_params.font_params.font_name = "Serif"
+            py_nvosd_text_params.font_params.font_size = 10
+            py_nvosd_text_params.font_params.font_color.set(1.0, 1.0, 1.0, 1.0)
+            py_nvosd_text_params.set_bg_clr = 1
+            py_nvosd_text_params.text_bg_clr.set(0.0, 0.0, 0.0, 1.0)
+
+            pyds.nvds_add_display_meta_to_frame(frame_meta, display_meta)
+
         # Acquiring a display meta object
         display_meta = pyds.nvds_acquire_display_meta_from_pool(batch_meta)
         display_meta.num_labels = 1
         py_nvosd_text_params = display_meta.text_params[0]
 
         # Setting display text to be shown on screen
-        py_nvosd_text_params.display_text = f"Frame Number={frame_number} Number of Objects={num_rects} Without_mask_count={obj_counter[PGIE_CLASS_ID_WITHOUT_MASK]} Incorrect_mask_count={obj_counter[PGIE_CLASS_ID_INCORRECT_MASK]}"
+        py_nvosd_text_params.display_text = f"Number of Objects={num_rects} Without_mask_count={obj_counter[PGIE_CLASS_ID_WITHOUT_MASK]} Incorrect_mask_count={obj_counter[PGIE_CLASS_ID_INCORRECT_MASK]}"
         py_nvosd_text_params.x_offset = 10
         py_nvosd_text_params.y_offset = 12
         py_nvosd_text_params.font_params.font_name = "Serif"
@@ -168,18 +187,16 @@ def main(args):
         sys.stderr.write("usage: %s <v4l2-device-path>\n" % args[0])
         sys.exit(1)
 
-    # Standard GStreamer initialization
     Gst.init(None)
 
     # Create gstreamer elements
-    # Create Pipeline element that will form a connection of other elements
     print("Creating Pipeline \n ")
     pipeline = Gst.Pipeline()
 
     if not pipeline:
         sys.stderr.write(" Unable to create Pipeline \n")
 
-    # Source element for reading from the file
+    # Source element
     print("Creating Source \n ")
     source = Gst.ElementFactory.make("v4l2src", "usb-cam-source")
     if not source:
@@ -190,15 +207,6 @@ def main(args):
         sys.stderr.write(" Unable to create v4l2src capsfilter \n")
 
     print("Creating Video Converter \n")
-
-    # Adding videoconvert -> nvvideoconvert as not all
-    # raw formats are supported by nvvideoconvert;
-    # Say YUYV is unsupported - which is the common
-    # raw format for many logi usb cams
-    # In case we have a camera with raw format supported in
-    # nvvideoconvert, GStreamer plugins' capability negotiation
-    # shall be intelligent enough to reduce compute by
-    # videoconvert doing passthrough (TODO we need to confirm this)
 
     # videoconvert to make sure a superset of raw formats are supported
     vidconvsrc = Gst.ElementFactory.make("videoconvert", "convertor_src1")
@@ -320,6 +328,7 @@ def main(args):
         pass
     # cleanup
     pipeline.set_state(Gst.State.NULL)
+
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv))

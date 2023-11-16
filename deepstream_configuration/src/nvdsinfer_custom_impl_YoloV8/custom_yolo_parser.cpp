@@ -80,9 +80,6 @@ bool NvDsInferParseModel (std::vector<NvDsInferLayerInfo> const &outputLayersInf
 
         assert((int)p_classes[i] < out_class_size);
 
-        std::cout << "Detection " << i << ": Class ID = " << p_classes[i]
-                  << ", Confidence = " << p_scores[i] << std::endl;
-
         NvDsInferObjectDetectionInfo object;
         object.classId = (int)p_classes[i];
         object.detectionConfidence = p_scores[i];
@@ -91,12 +88,8 @@ bool NvDsInferParseModel (std::vector<NvDsInferLayerInfo> const &outputLayersInf
         object.width = CLIP(p_bboxes[4*i+2], 0, networkInfo.width - 1);
         object.height = CLIP(p_bboxes[4*i+3], 0, networkInfo.height - 1);
 
-        std::cout << "Bounding Box: [" << object.left << ", " << object.top
-                  << ", " << object.width << ", " << object.height << "]" << std::endl;
-
         objectList.push_back(object);
     }
-    std::cout << "Completed parsing detections." << std::endl;
     return true;
 }
 /* Check that the custom function has been defined correctly */
