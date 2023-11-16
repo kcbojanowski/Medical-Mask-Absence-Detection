@@ -19,15 +19,15 @@ PGIE_CLASS_ID_WITHOUT_MASK = 2
 labels_path = '../models/labels.txt'
 
 # Bounding box options
-bbox_border_color_0 = {"R": 0.0, "G": 0.5, "B": 0.5, "A": 1.0}
+bbox_border_color_0 = {"R": 1.0, "G": 1.0, "B": 0.0, "A": 1.0}
 bbox_border_color_1 = {"R": 0.0, "G": 1.0, "B": 0.0, "A": 1.0}
 bbox_border_color_2 = {"R": 1.0, "G": 0.0, "B": 0.0, "A": 1.0}
 bbox_has_bg_color = False  # Bool for whether bounding box has background color
 
 # Color of bbox background.
-bbox_bg_color_0 = {"R": 0.0, "G": 0.5, "B": 0.5, "A": 0.2}
-bbox_bg_color_1 = {"R": 0.0, "G": 1.0, "B": 0.0, "A": 0.2}
-bbox_bg_color_2 = {"R": 1.0, "G": 0.0, "B": 0.0, "A": 0.2}
+bbox_bg_color_0 = {"R": 1.0, "G": 1.0, "B": 0.0, "A": 0.5}
+bbox_bg_color_1 = {"R": 0.0, "G": 1.0, "B": 0.0, "A": 0.5}
+bbox_bg_color_2 = {"R": 1.0, "G": 0.0, "B": 0.0, "A": 0.5}
 
 
 def load_class_labels(labels_path):
@@ -92,9 +92,30 @@ def osd_sink_pad_buffer_probe(pad, info, u_data):
 
             obj_counter[obj_meta.class_id] += 1
             rectparams = obj_meta.rect_params
-            rectparams.border_color.set(1, 0, 0, 1)
             rectparams.border_width = 3
             rectparams.has_bg_color = 0
+
+            # Choose color based on class ID
+            if obj_meta.class_id == PGIE_CLASS_ID_INCORRECT_MASK:
+                bbox_color = bbox_border_color_0
+                bg_color = bbox_bg_color_0
+            elif obj_meta.class_id == PGIE_CLASS_ID_WITH_MASK:
+                bbox_color = bbox_border_color_1
+                bg_color = bbox_bg_color_1
+            elif obj_meta.class_id == PGIE_CLASS_ID_WITHOUT_MASK:
+                bbox_color = bbox_border_color_2
+                bg_color = bbox_bg_color_2
+            else:
+                bbox_color = {"R": 1.0, "G": 1.0, "B": 1.0, "A": 1.0}
+                bg_color = {"R": 0.5, "G": 0.5, "B": 0.5, "A": 0.2}
+
+            # Set color of bbox
+            rectparams.border_color.set(bbox_color["R"], bbox_color["G"], bbox_color["B"], bbox_color["A"])
+            # Set whether bbox has background color
+            rectparams.has_bg_color = bbox_has_bg_color
+            # If bbox has background color, set background color
+            if bbox_has_bg_color:
+                rectparams.bg_color.set(bg_color["R"], bg_color["G"], bg_color["B"], bg_color["A"])
 
             label_name = class_labels[obj_meta.class_id] if obj_meta.class_id < len(class_labels) else "Unknown"
 
@@ -234,8 +255,8 @@ def main(args):
     nvmm_caps.set_property("caps", caps)
     source.set_property('device', args[1])
     streammux.set_property('gpu-id', 0)
-    streammux.set_property('width', 640)
-    streammux.set_property('height', 640)
+    streammux.set_property('width', 1920)
+    streammux.set_property('height', 1080)
     streammux.set_property('batch-size', 1)
     streammux.set_property('live-source', 1)
     streammux.set_property('batched-push-timeout', 4000000)

@@ -1,29 +1,27 @@
 [property]
 gpu-id=0
-net-scale-factor=1
-
-# paths and func names
-# onnx-file=../models/onnx/train7.onnx
-model-engine-file=../models/trt_engines/train7.engine
-labelfile-path=../models/labels.txt
-custom-lib-path=../src/nvdsinfer_custom_impl_YoloV8/libnvdsinfer_custom_impl_YoloV8.so
-parse-bbox-func-name=NvDsInferParseCustomYoloV8
-
-# output layers of YOLOv8
-output-blob-names=num_dets;bboxes;scores;labels
-
-batch-size=1
-interval=0
-
-# use 0 for FP32, 1 for INT8, and 2 for FP16 precision.
-network-mode=2
-
-# YOLOv8 has a specific number of classes it can detect, so update this to the correct number.
-num-detected-classes=3
-
-# gie-unique-id should be unique for each nvinfer element in the pipeline
+net-scale-factor = 0.0039215697906911373
 gie-unique-id=1
 
+# onnx-file=../models/onnx/train7_after.onnx
+model-engine-file=/home/bojan/PycharmProjects/Medical-Mask-Absence-Detection/deepstream_configuration/models/trt_engines/train7_after.engine
+labelfile-path=../models/labels.txt
+custom-lib-path=/home/bojan/PycharmProjects/Medical-Mask-Absence-Detection/deepstream_configuration/src/nvdsinfer_custom_impl_YoloV8/custom_yolo_parser.so
+parse-bbox-func-name=NvDsInferParseModel
+
+symmetric-padding = 1
+network-input-order = 0
+maintain-aspect-ratio = 1
+interval = 0
+model-color-format = 0
+output-blob-names=bbox;conf;class_id
+batch-size=1
+interval=0
+network-mode=2 # use 0 for FP32, 1 for INT8, and 2 for FP16 precision.
+process-mode = 1
+num-detected-classes=3
+
 [class-attrs-all]
-pre-cluster-threshold=0.6
-group-threshold=1
+topk = 50
+nms-iou-threshold = 0.5
+pre-cluster-threshold = 0.4
