@@ -8,6 +8,9 @@ classes = {
     2: "without mask"
 }
 
+VERSION = 14
+
+
 def count_classes(directory, title):
     # Initialize count dictionary
     class_counts = {key: 0 for key in classes}
@@ -31,7 +34,6 @@ def count_classes(directory, title):
 
     print(table)
 
-        # Suggestion
     total_samples = sum(class_counts.values())
     if class_counts[0] < total_samples * 0.15:
         print("\nSuggestion: Consider adding more samples of 'mask worn incorrectly' to make the dataset more balanced.")
@@ -41,11 +43,11 @@ def count_classes(directory, title):
         print("\nSuggestion: Consider adding more samples of 'without mask' to make the dataset more balanced.")
 
     print("\n----------------------------------\n")
-#%%
-# Define directory path
-train_directory = "../Mask-Detection-YOLOv8-1/train/labels"
-test_directory = "../Mask-Detection-YOLOv8-1/test/labels"
-val_directory = "../Mask-Detection-YOLOv8-1/valid/labels"
+
+
+train_directory = f"../Mask-Detection-YOLOv8-{VERSION}/train/labels"
+test_directory = f"../Mask-Detection-YOLOv8-{VERSION}/test/labels"
+val_directory = f"../Mask-Detection-YOLOv8-{VERSION}/valid/labels"
 
 count_classes(train_directory, "Train Dataset")
 count_classes(test_directory, "Test Dataset")

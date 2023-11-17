@@ -7,6 +7,7 @@ from common.is_aarch_64 import is_aarch64
 from common.bus_call import bus_call
 import time
 import pyds
+import argparse
 
 gi.require_version('Gst', '1.0')
 
@@ -18,19 +19,20 @@ PGIE_CLASS_ID_WITHOUT_MASK = 2
 bbox_border_color_0 = {"R": 1.0, "G": 1.0, "B": 0.0, "A": 1.0}
 bbox_border_color_1 = {"R": 0.0, "G": 1.0, "B": 0.0, "A": 1.0}
 bbox_border_color_2 = {"R": 1.0, "G": 0.0, "B": 0.0, "A": 1.0}
-bbox_has_bg_color = False  # Bool for whether bounding box has background color
+bbox_has_bg_color = True  # Bool for whether bounding box has background color
 
 # Color of bbox background.
-bbox_bg_color_0 = {"R": 1.0, "G": 1.0, "B": 0.0, "A": 0.5}
-bbox_bg_color_1 = {"R": 0.0, "G": 1.0, "B": 0.0, "A": 0.5}
-bbox_bg_color_2 = {"R": 1.0, "G": 0.0, "B": 0.0, "A": 0.5}
+bbox_bg_color_0 = {"R": 1.0, "G": 1.0, "B": 0.0, "A": 0.1}
+bbox_bg_color_1 = {"R": 0.0, "G": 1.0, "B": 0.0, "A": 0.1}
+bbox_bg_color_2 = {"R": 1.0, "G": 0.0, "B": 0.0, "A": 0.1}
 
 # Global variables to calculate FPS
 global last_time, frame_count
 last_time = time.time()
 frame_count = 0
-# Change this to display FPS every N frames
 fps_display_frequency = 2
+
+labels_path = '../models/labels.txt'
 
 
 def load_class_labels(label_path):
@@ -39,13 +41,11 @@ def load_class_labels(label_path):
     return labels
 
 
-labels_path = '../models/labels.txt'
-class_labels = load_class_labels(labels_path)
-
-
 def osd_sink_pad_buffer_probe(pad, info, u_data):
     global last_time, frame_count
     frame_count += 1
+
+    class_labels = load_class_labels(labels_path)
 
     obj_counter = {
         PGIE_CLASS_ID_INCORRECT_MASK: 0,
@@ -118,9 +118,10 @@ def osd_sink_pad_buffer_probe(pad, info, u_data):
                 rectparams.bg_color.set(bg_color["R"], bg_color["G"], bg_color["B"], bg_color["A"])
 
             label_name = class_labels[obj_meta.class_id] if obj_meta.class_id < len(class_labels) else "Unknown"
+            confidence_percent = obj_meta.confidence * 100
 
-            # Set text parameters
-            obj_meta.text_params.display_text = f"{label_name}"
+            # Set text parameters with label and confidence
+            obj_meta.text_params.display_text = f"{label_name} {confidence_percent:.2f}%"
             obj_meta.text_params.x_offset = int(rectparams.left)
             obj_meta.text_params.y_offset = max(int(rectparams.top) - 10, 0)
             obj_meta.text_params.font_params.font_name = "Serif"
@@ -144,10 +145,10 @@ def osd_sink_pad_buffer_probe(pad, info, u_data):
             py_nvosd_text_params = display_meta.text_params[0]
 
             # Setting FPS text to be shown on screen
-            py_nvosd_text_params.display_text = f"FPS: {fps:.2f}"
+            py_nvosd_text_params.display_text = f"Number of Frame: {frame_count}, FPS: {fps:.2f}"
             py_nvosd_text_params.x_offset = 10
             py_nvosd_text_params.y_offset = 30  # Adjust the Y offset as needed
-            py_nvosd_text_params.font_params.font_name = "Serif"
+            py_nvosd_text_params.font_params.font_name = "Sans Serif"
             py_nvosd_text_params.font_params.font_size = 10
             py_nvosd_text_params.font_params.font_color.set(1.0, 1.0, 1.0, 1.0)
             py_nvosd_text_params.set_bg_clr = 1
@@ -169,8 +170,6 @@ def osd_sink_pad_buffer_probe(pad, info, u_data):
         py_nvosd_text_params.font_params.font_color.set(1.0, 1.0, 1.0, 1.0)
         py_nvosd_text_params.set_bg_clr = 1
         py_nvosd_text_params.text_bg_clr.set(0.0, 0.0, 0.0, 1.0)
-
-        print(pyds.get_string(py_nvosd_text_params.display_text))
         pyds.nvds_add_display_meta_to_frame(frame_meta, display_meta)
 
         try:
@@ -181,15 +180,23 @@ def osd_sink_pad_buffer_probe(pad, info, u_data):
     return Gst.PadProbeReturn.OK
 
 
-def main(args):
-    # Check input arguments
-    if len(args) != 2:
-        sys.stderr.write("usage: %s <v4l2-device-path>\n" % args[0])
-        sys.exit(1)
+def parse_args():
+    parser = argparse.ArgumentParser(description="DeepStream YOLO Dataset Processor")
+    parser.add_argument("--dataset", type=str, help="Path to the dataset folder containing images and labels", required=False)
+    parser.add_argument("--device", type=str, default="/dev/video0", help="Path to the USB camera device (e.g., /dev/video0)")
+    parser.add_argument("--framerate", type=str, default="30/1", help="Framerate for the video capture (e.g., '15/1')")
+    return parser.parse_args()
 
+
+def main():
+    args = parse_args()
+
+    if args.dataset:
+        pass
+
+    # Initialize GStreamer
     Gst.init(None)
 
-    # Create gstreamer elements
     print("Creating Pipeline \n ")
     pipeline = Gst.Pipeline()
 
@@ -208,7 +215,7 @@ def main(args):
 
     print("Creating Video Converter \n")
 
-    # videoconvert to make sure a superset of raw formats are supported
+    # Videoconvert to make sure a superset of raw formats are supported
     vidconvsrc = Gst.ElementFactory.make("videoconvert", "convertor_src1")
     if not vidconvsrc:
         sys.stderr.write(" Unable to create videoconvert \n")
@@ -218,34 +225,34 @@ def main(args):
     if not nvvidconvsrc:
         sys.stderr.write(" Unable to create Nvvideoconvert \n")
 
-    # Create capsfilter for nvvidconvsrc to output RGBA format
+    # Capsfilter for nvvidconvsrc to output RGBA format
     nvmm_caps = Gst.ElementFactory.make("capsfilter", "nvmm_caps")
     if not nvmm_caps:
         sys.stderr.write(" Unable to create capsfilter \n")
 
-    # Create nvstreammux instance to form batches from one or more sources.
+    # Nvstreammux instance to form batches from one or more sources.
     streammux = Gst.ElementFactory.make("nvstreammux", "Stream-muxer")
     if not streammux:
         sys.stderr.write(" Unable to create NvStreamMux \n")
 
-    # Use nvinfer to run inferencing on camera's output,
+    # Nvinfer to run inferencing on camera's output,
     # behaviour of inferencing is set through config file
     pgie = Gst.ElementFactory.make("nvinfer", "primary-inference")
     if not pgie:
         sys.stderr.write(" Unable to create pgie \n")
 
-    # Use convertor to convert from NV12 to RGBA as required by nvosd
+    # Convertor to convert from NV12 to RGBA as required by nvosd
     nvvidconv = Gst.ElementFactory.make("nvvideoconvert", "convertor")
     if not nvvidconv:
         sys.stderr.write(" Unable to create nvvidconv \n")
 
-    # Create OSD to draw on the converted RGBA buffer
+    # OSD to draw on the converted RGBA buffer
     nvosd = Gst.ElementFactory.make("nvdsosd", "onscreendisplay")
 
     if not nvosd:
         sys.stderr.write(" Unable to create nvosd \n")
 
-    # Finally render the osd output
+    # Render the OSD output
     if is_aarch64():
         print("Creating nv3dsink \n")
         sink = Gst.ElementFactory.make("nv3dsink", "nv3d-sink")
@@ -257,11 +264,11 @@ def main(args):
         if not sink:
             sys.stderr.write(" Unable to create egl sink \n")
 
-    print("Playing cam %s " % args[1])
-    caps_v4l2src.set_property('caps', Gst.Caps.from_string("video/x-raw, framerate=15/1"))
+    print(f"Playing camera {args.device} with framerate {args.framerate}")
+    caps_v4l2src.set_property('caps', Gst.Caps.from_string(f"video/x-raw, framerate={args.framerate}"))
     caps = Gst.caps_from_string("video/x-raw(memory:NVMM), format=(string)RGBA")
     nvmm_caps.set_property("caps", caps)
-    source.set_property('device', args[1])
+    source.set_property('device', args.device)
     streammux.set_property('gpu-id', 0)
     streammux.set_property('width', 1920)
     streammux.set_property('height', 1080)
@@ -269,7 +276,7 @@ def main(args):
     streammux.set_property('live-source', 1)
     streammux.set_property('batched-push-timeout', 4000000)
     pgie.set_property('config-file-path', "../configs/pgie_config.txt")
-    # Set sync = false to avoid late frame drops at the display-sink
+    # sync = false to avoid late frame drops at the display-sink
     sink.set_property('sync', 0)
 
     print("Adding elements to Pipeline \n")
@@ -305,15 +312,11 @@ def main(args):
     nvvidconv.link(nvosd)
     nvosd.link(sink)
 
-    # create an event loop and feed gstreamer bus mesages to it
     loop = GLib.MainLoop()
     bus = pipeline.get_bus()
     bus.add_signal_watch()
     bus.connect("message", bus_call, loop)
 
-    # Lets add probe to get informed of the meta data generated, we add probe to
-    # the sink pad of the osd element, since by that time, the buffer would have
-    # had got all the metadata.
     osdsinkpad = nvosd.get_static_pad("sink")
     if not osdsinkpad:
         sys.stderr.write(" Unable to get sink pad of nvosd \n")
@@ -331,4 +334,4 @@ def main(args):
 
 
 if __name__ == '__main__':
-    sys.exit(main(sys.argv))
+    sys.exit(main())

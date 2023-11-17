@@ -4,6 +4,11 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import time
 from DeepStream.DeepStream import pipeline
 
+''' 
+                                                ! WARNING !
+    Currently this Application is not used by Deepstream application. It will be featured in next versions
+'''
+
 
 class VideoCaptureThread(threading.Thread):
     def __init__(self):

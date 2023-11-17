@@ -15,6 +15,7 @@ Developed as an Engineering Thesis at AGH University by Kacper Bojanowski, this 
 ## Table of Contents
 - [Installation](#installation)
 - [Usage](#usage)
+- [Process](#process)
 - [Datasets](#datasets)
 - [Support](#support)
 - [DeepStream SDK](#deepstream-sdk)
@@ -27,6 +28,17 @@ Developed as an Engineering Thesis at AGH University by Kacper Bojanowski, this 
 
 ## Usage
 (Instructions on how to use the application, including how to start the detection pipeline and interface with the web application, will be included soon)
+
+## Process
+ 
+1. Data processing
+2. Training Yolov8 custom model
+3. Converting it to ONNX file (Open Neural Network Exchange)
+4. Modifying model using GraphSurgeon for DeepStream compatibility
+4. Transferring it to TensorRT engine (compatibility, performance, optimization)
+5. Creating custom C++ parser for the Deepstream application
+6. Programming Deepstream Application and creating configuration file 
+7. *Analyzing results and performance
 
 ## Datasets
 This application utilizes the following datasets for training and validation:
