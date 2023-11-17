@@ -3,8 +3,8 @@ gpu-id=0
 net-scale-factor = 0.0039215697906911373
 gie-unique-id=1
 
-# onnx-file=../models/onnx/train7_after.onnx
-model-engine-file=/home/bojan/PycharmProjects/Medical-Mask-Absence-Detection/deepstream_configuration/models/trt_engines/train7_after.engine
+# onnx-file=../models/onnx/FaceMaskYolov8.onnx
+model-engine-file=/home/bojan/PycharmProjects/Medical-Mask-Absence-Detection/deepstream_configuration/models/trt_engines/FaceMaskYolov8.engine
 labelfile-path=../models/labels.txt
 custom-lib-path=/home/bojan/PycharmProjects/Medical-Mask-Absence-Detection/deepstream_configuration/src/nvdsinfer_custom_impl_YoloV8/custom_yolo_parser.so
 parse-bbox-func-name=NvDsInferParseModel

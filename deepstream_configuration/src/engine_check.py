@@ -209,5 +209,5 @@ def process_video(engine, camera_index=0):
     cv2.destroyAllWindows()
 
 
-engine = TRTEngine("../models/trt_engines/train7.engine")
+engine = TRTEngine("../models/trt_engines/FaceMaskYolov8.engine")
 process_video(engine)

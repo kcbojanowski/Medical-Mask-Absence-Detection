@@ -119,7 +119,7 @@ class OnnxModifier:
 
         elif output_name == "class_id":
             input_node.outputs = [
-                gs.Variable(name=output_name).to_variable(shape=["batch", None], dtype=np.float32)]
+                gs.Variable(name=output_name).to_variable(shape=["batch", None], dtype=np.int32)]
 
         return input_node.outputs[0]
 
@@ -199,32 +199,32 @@ class Yolov8Modifier:
 
 
 # Load your model
-#model_path = '../models/pytorch/train7.pt'
-onnx_model_path = '../models/onnx/train7_v1.onnx'
-onnx_save_path = '../models/onnx/train7_float.onnx'
+model_path = '../models/pytorch/best.pt'
+onnx_model_path = '../models/onnx/FaceMaskYolov8.onnx'
+onnx_save_path = '../models/onnx/FaceMaskYolov8.onnx'
 
-# dir_path = os.path.dirname(os.path.abspath(onnx_save_path))
-# if not os.path.exists(dir_path):
-#     print(f"Directory does not exist: {dir_path}")
-# else:
-#     print(f"Directory exists: {dir_path}")
-#
-# # Check if file already exists
-# if os.path.isfile(onnx_save_path):
-#     print(f"File already exists: {onnx_save_path}")
-# else:
-#     print(f"File does not exist and will be created: {onnx_save_path}")
-# # Load your trained model
-#
-# model = torch.load(model_path)['model'].float().eval()
-#
-# # Create a dummy input tensor
-# dummy_input = torch.randn(1, 3, 640, 640)
-#
-# # Export the model to ONNX
-# torch.onnx.export(model, dummy_input, onnx_model_path)
-# onnx_model = onnx.load(onnx_model_path)
-# onnx.checker.check_model(onnx_model)
+dir_path = os.path.dirname(os.path.abspath(onnx_save_path))
+if not os.path.exists(dir_path):
+    print(f"Directory does not exist: {dir_path}")
+else:
+    print(f"Directory exists: {dir_path}")
+
+# Check if file already exists
+if os.path.isfile(onnx_save_path):
+    print(f"File already exists: {onnx_save_path}")
+else:
+    print(f"File does not exist and will be created: {onnx_save_path}")
+# Load your trained model
+
+model = torch.load(model_path)['model'].float().eval()
+
+# Create a dummy input tensor
+dummy_input = torch.randn(1, 3, 640, 640)
+
+# Export the model to ONNX
+torch.onnx.export(model, dummy_input, onnx_model_path)
+onnx_model = onnx.load(onnx_model_path)
+onnx.checker.check_model(onnx_model)
 
 modifier = Yolov8Modifier(onnx_model_path, onnx_save_path)
 modifier.run()
