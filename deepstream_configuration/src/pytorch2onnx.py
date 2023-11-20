@@ -200,20 +200,21 @@ class Yolov8Modifier:
 
 # Load your model
 model_path = '../models/pytorch/best.pt'
-onnx_model_path = '../models/onnx/FaceMaskYolov8.onnx'
-onnx_save_path = '../models/onnx/FaceMaskYolov8.onnx'
+onnx_model_path = '../models/onnx/best.onnx'
+# onnx_model_path = '../models/onnx/FaceMaskYolov8.onnx'
+# onnx_save_path = '../models/onnx/FaceMaskYolov8.onnx'
 
-dir_path = os.path.dirname(os.path.abspath(onnx_save_path))
-if not os.path.exists(dir_path):
-    print(f"Directory does not exist: {dir_path}")
-else:
-    print(f"Directory exists: {dir_path}")
-
-# Check if file already exists
-if os.path.isfile(onnx_save_path):
-    print(f"File already exists: {onnx_save_path}")
-else:
-    print(f"File does not exist and will be created: {onnx_save_path}")
+# dir_path = os.path.dirname(os.path.abspath(onnx_save_path))
+# if not os.path.exists(dir_path):
+#     print(f"Directory does not exist: {dir_path}")
+# else:
+#     print(f"Directory exists: {dir_path}")
+#
+# # Check if file already exists
+# if os.path.isfile(onnx_save_path):
+#     print(f"File already exists: {onnx_save_path}")
+# else:
+#     print(f"File does not exist and will be created: {onnx_save_path}")
 # Load your trained model
 
 model = torch.load(model_path)['model'].float().eval()
@@ -226,7 +227,7 @@ torch.onnx.export(model, dummy_input, onnx_model_path)
 onnx_model = onnx.load(onnx_model_path)
 onnx.checker.check_model(onnx_model)
 
-modifier = Yolov8Modifier(onnx_model_path, onnx_save_path)
-modifier.run()
+# modifier = Yolov8Modifier(onnx_model_path, onnx_save_path)
+# modifier.run()
 
 
