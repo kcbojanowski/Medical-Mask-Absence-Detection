@@ -38,7 +38,7 @@ Developed as an Engineering Thesis at AGH University by Kacper Bojanowski, this 
 4. Transferring it to TensorRT engine (compatibility, performance, optimization)
 5. Creating custom C++ parser for the Deepstream application
 6. Programming Deepstream Application and creating configuration file 
-7. *Analyzing results and performance
+7. Analyzing results and performance
 
 ## Datasets
 This application utilizes the following datasets for training and validation:
