@@ -27,7 +27,9 @@ Developed as an Engineering Thesis at AGH University by Kacper Bojanowski, this 
 (Instructions on how to install the application, including how to start the detection pipeline and interface with the web application, will be included soon)
 
 ## Usage
-(Instructions on how to use the application, including how to start the detection pipeline and interface with the web application, will be included soon)
+In order to run Face Mask Detection System you must install all the needed dependencies on your Linux environment.
+To execute application got to **deepstream_configuration/src** and run `python3 deepstream_app.py`
+To run testing mode that will output application metrics run `python3 deepstream_app.py --test`
 
 ## Process
  
