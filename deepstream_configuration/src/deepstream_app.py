@@ -344,6 +344,7 @@ def parse_labels(label_path):
                     "width": width,
                     "height": height
                 })
+        # print(label_path[-9:], ": ", labels)
     return labels
 
 
@@ -390,7 +391,6 @@ def test_osd_sink_pad_buffer_probe(pad, info, u_data):
                 break
     finally:
         pyds.nvds_release_meta_lock(batch_meta)  # Release the lock
-    if frame_detections:
         detected_labels.append(frame_detections)
 
     return Gst.PadProbeReturn.OK
@@ -415,7 +415,6 @@ def iou(box1, box2):
 
 
 def calculate_metrics(predicted_labels, ground_truth_labels):
-
     class_wise_data = {}
 
     for detected, ground_truth in zip(predicted_labels, ground_truth_labels):
@@ -427,7 +426,7 @@ def calculate_metrics(predicted_labels, ground_truth_labels):
             matched = False
             for det in detected:
                 if det['class_id'] == gt_class_id:
-                    if iou(det, gt) >= 0.5:
+                    if iou(det, gt) >= 0.5:  # Adjust IoU threshold to 0.5 for mAP50
                         matched = True
                         if det not in class_wise_data[gt_class_id]['detected']:
                             class_wise_data[gt_class_id]['TP'] += 1
@@ -458,13 +457,13 @@ def calculate_metrics(predicted_labels, ground_truth_labels):
 
     all_precisions = [data['precision'] for data in class_wise_data.values()]
     all_recalls = [data['recall'] for data in class_wise_data.values()]
-    mAP = sum(all_precisions) / len(all_precisions) if all_precisions else 0
-    mean_recall = sum(all_recalls) / len(all_recalls) if all_recalls else 0
+    mAP50 = sum(all_precisions) / len(all_precisions) if all_precisions else 0
+    overall_recall = total_TP / (total_TP + total_FN) if total_TP + total_FN > 0 else 0
+    overall_precision = total_TP / (total_TP + total_FP) if total_TP + total_FP > 0 else 0
 
-    # Calculate accuracy
-    accuracy = total_TP / (total_TP + total_FP + total_FN) if total_TP + total_FP + total_FN > 0 else 0
+    return mAP50, overall_recall, overall_precision
 
-    return mAP, mean_recall, accuracy
+
 
 
 def run_dataset_test(args):

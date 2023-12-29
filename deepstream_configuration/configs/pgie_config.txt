@@ -17,11 +17,11 @@ model-color-format = 0
 output-blob-names=bbox;conf;class_id
 batch-size=1
 interval=0
-network-mode=2 # use 0 for FP32, 1 for INT8, and 2 for FP16 precision.
+network-mode=1 # use 0 for FP32, 1 for INT8, and 2 for FP16 precision.
 process-mode = 1
 num-detected-classes=3
 
 [class-attrs-all]
 topk = 50
 nms-iou-threshold = 0.5
-pre-cluster-threshold = 0.3
+pre-cluster-threshold = 0.5

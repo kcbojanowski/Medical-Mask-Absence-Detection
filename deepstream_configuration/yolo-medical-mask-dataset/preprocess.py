@@ -19,8 +19,8 @@ def rename_files(directory, pattern, extension):
         print(f"Renamed {filename} to {new_name}")
 
 def main():
-    image_directory = "test/images/"
-    label_directory = "test/labels/"
+    image_directory = "valid/images/"
+    label_directory = "valid/labels/"
     target_size = (1280, 720)
 
     # Resize JPG files
